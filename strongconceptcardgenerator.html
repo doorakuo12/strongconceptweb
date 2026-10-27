@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>強概念發想抽卡機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .category-btn {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .category-btn:active {
+            transform: scale(0.95);
+        }
+
+        .category-btn.selected {
+            ring: 2px;
+            ring-offset: 2px;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+            filter: brightness(0.9);
+            font-weight: bold;
+        }
+
+        /* Card Reveal Animation */
+        @keyframes popIn {
+            0% { transform: scale(0.5) translateY(50px); opacity: 0; }
+            70% { transform: scale(1.05) translateY(-10px); opacity: 1; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .card-reveal {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-gray-900 text-white py-4 px-6 shadow-md flex justify-between items-center z-10 shrink-0">
+        <div>
+            <h1 class="text-2xl font-black tracking-wider">💡 STRONG CONCEPT 發想抽卡機</h1>
+            <p class="text-sm text-gray-300 mt-1">選取關鍵字與作品，合成專屬概念討論卡</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="randomSelect()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold transition shadow-lg flex items-center gap-2">
+                <span>🎲 隨機選字</span>
+            </button>
+            <button onclick="clearSelection()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold transition shadow">
+                重置選項
+            </button>
+            <button onclick="generateCard()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-2 rounded-lg font-black transition shadow-lg flex items-center gap-2 transform hover:scale-105">
+                <span>✨ 亮出概念卡</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Panel: Selection Area -->
+        <div class="w-full lg:w-2/3 h-full overflow-y-auto p-6 space-y-6 pb-24" id="selection-panel">
+            <!-- Dynamic Content will be injected here -->
+        </div>
+
+        <!-- Right Panel: Result & History Area -->
+        <div class="hidden lg:flex w-1/3 h-full bg-gray-200 border-l border-gray-300 flex-col relative z-0">
+            <div class="p-4 bg-gray-300 text-gray-700 font-bold text-lg border-b border-gray-400 flex justify-between items-center shrink-0">
+                <span>🗂️ 抽卡紀錄 (History)</span>
+                <span id="history-count" class="text-sm bg-gray-500 text-white px-2 py-1 rounded-full">0</span>
+            </div>
+            <div id="history-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="text-center text-gray-500 mt-10" id="empty-history">
+                    尚未產生任何概念卡<br>請在左側選取後點擊「亮出概念卡」
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Overlay Modal for Card Display -->
+    <div id="card-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+        <div class="relative w-full max-w-2xl">
+            <!-- Close button -->
+            <button onclick="closeModal()" class="absolute -top-12 right-0 text-white hover:text-gray-300 transition text-4xl">&times;</button>
+            
+            <!-- The Card -->
+            <div id="generated-card" class="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col card-reveal border-4 border-white">
+                <div class="bg-gray-900 text-white p-5 text-center">
+                    <h2 class="text-3xl font-black tracking-widest">STRONG CONCEPT</h2>
+                    <p class="text-gray-400 text-sm mt-1" id="card-timestamp">2023.10.27 - 發想組合</p>
+                </div>
+                
+                <div class="p-6 space-y-4" id="card-content-area">
+                    <!-- Data injected here -->
+                </div>
+                
+                <div class="bg-gray-50 p-4 border-t text-center text-gray-400 text-sm">
+                    討論方向・概念合成卡
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data & Script -->
+    <script>
+        // Database
+        const data = [
+            {
+                id: 'context',
+                title: '場域',
+                subtitle: '(為什麽需要在這裡發生)',
+                colorClass: 'bg-pink-100 text-pink-900 border-pink-200 hover:bg-pink-200 ring-pink-400',
+                headerClass: 'bg-pink-200 text-pink-900',
+                items: ['家裡', '客廳', '房間', '廚房', '浴室', '床邊', '玄關', '租屋套房', '病房', '便利商店', '交通工具', '雜貨店', '書店', '電氣行', '二手家電行', '養老院', '阿嬤家', '台南車站', '傳統市場', '戶政事務所', '睡前', '用餐', '節日', '喪禮', '停電', '颱風天', '搬家那天', '家庭結構', '限制族群']
+            },
+            {
+                id: 'condition',
+                title: '條件',
+                subtitle: '(它如何獲得行動能力)',
+                colorClass: 'bg-cyan-100 text-cyan-900 border-cyan-200 hover:bg-cyan-200 ring-cyan-400',
+                headerClass: 'bg-cyan-200 text-cyan-900',
+                items: ['有自己需求', '運作方式', '人類介入', '拒絕', '延遲', '選擇', '尺寸', '材質', '方便性', '環境', '氣候', '電能源', '被忽略', '停電', '只剩一個插座', '主人出國一個月', '家裡來了新電器', '壞了一半', '沒有網路', '半夜 24:00-02:00', '被收進儲藏室']
+            },
+            {
+                id: 'function',
+                title: '功能',
+                subtitle: '(改變了什麼)',
+                colorClass: 'bg-purple-100 text-purple-900 border-purple-200 hover:bg-purple-200 ring-purple-400',
+                headerClass: 'bg-purple-200 text-purple-900',
+                items: ['傳遞', '提醒', '放大', '加熱', '計時', '照明', '清潔', '冷藏保存', '吹風', '播放聲音', '供電連結', '讓人聚集', '建立習慣', '陪伴', '取代', '衍生衝突']
+            },
+            {
+                id: 'abstract',
+                title: '抽象概念',
+                subtitle: '(可以被理解為...)',
+                colorClass: 'bg-teal-100 text-teal-900 border-teal-200 hover:bg-teal-200 ring-teal-400',
+                headerClass: 'bg-teal-200 text-teal-900',
+                items: ['觀察時代演變下人的生活型態變化', '性別分工', '消費主義', '效率', '馴化', '淘汰', '嫉妒', '傳承', '共生', '退休', '依賴', '來生', '服從', '誰能操作', '誰負責維護', '誰制定規則', '誰承擔後果', '人與物', '物與物', '人與環境', '個體與系統']
+            },
+            {
+                id: 'interaction',
+                title: '互動的品質',
+                subtitle: '(產生的互動價值)',
+                colorClass: 'bg-rose-100 text-rose-900 border-rose-200 hover:bg-rose-200 ring-rose-400',
+                headerClass: 'bg-rose-200 text-rose-900',
+                items: ['流暢／卡頓', '分享性', '緩慢', '可被忽略', '不確定性', '主動性', '摩擦', '儀式感', '直覺性操作', '需說明', '先學習後操作', '操作中學習', '情緒刺激', '認知落差', '平常不會注意到的', '開放式結果', '五感', '娛樂價值', '成果留下痕跡', '一次性', '立即', '等待', '延遲', '時間']
+            },
+            {
+                id: 'strong_concept',
+                title: '強概念',
+                subtitle: '',
+                colorClass: 'bg-yellow-100 text-yellow-900 border-yellow-200 hover:bg-yellow-200 ring-yellow-400',
+                headerClass: 'bg-yellow-200 text-yellow-900',
+                items: ['慢科技', '隱性互動', '反功能設計', '縫隙式設計', '物件能動性', '設計的摩擦']
+            },
+            {
+                id: 'projects',
+                title: '註釋作品集卡',
+                subtitle: '(Reference Projects)',
+                colorClass: 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 ring-gray-400 font-bold',
+                headerClass: 'bg-gray-300 text-gray-900',
+                items: ['The Selfie Plant', 'Objective Realities', 'Teacher of Algorithms', '尖銳跟溫柔的時鐘', 'Addicted Toaster 烤麵包機', 'We all want to be clean (2017)', 'Homemaker (2024)', 'Botanical Printer', '24.8 小時', '虛談收音機']
+            }
+        ];
+
+        let selectedItems = {};
+        let history = [];
+
+        // Initialize state
+        data.forEach(cat => {
+            selectedItems[cat.id] = new Set();
+        });
+
+        // DOM Elements
+        const selectionPanel = document.getElementById('selection-panel');
+        const historyContainer = document.getElementById('history-container');
+        const emptyHistoryMsg = document.getElementById('empty-history');
+        const historyCount = document.getElementById('history-count');
+        const cardModal = document.getElementById('card-modal');
+        const cardContentArea = document.getElementById('card-content-area');
+        const cardTimestamp = document.getElementById('card-timestamp');
+
+        // Render Selection UI
+        function renderUI() {
+            data.forEach(category => {
+                const section = document.createElement('div');
+                section.className = 'glass-panel rounded-xl overflow-hidden mb-6';
+                
+                // Header
+                const header = document.createElement('div');
+                header.className = `${category.headerClass} px-5 py-3 border-b border-white/40 flex items-baseline gap-2`;
+                header.innerHTML = `
+                    <h2 class="text-xl font-black">${category.title}</h2>
+                    <span class="text-sm opacity-80">${category.subtitle}</span>
+                `;
+                section.appendChild(header);
+
+                // Buttons container
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'p-5 flex flex-wrap gap-2';
+
+                category.items.forEach(item => {
+                    const btn = document.createElement('div');
+                    btn.className = `category-btn border px-4 py-2 rounded-full text-sm transition-all ${category.colorClass}`;
+                    btn.innerText = item;
+                    btn.dataset.category = category.id;
+                    btn.dataset.item = item;
+                    
+                    btn.onclick = () => toggleSelection(btn, category.id, item);
+                    
+                    btnContainer.appendChild(btn);
+                });
+
+                section.appendChild(btnContainer);
+                selectionPanel.appendChild(section);
+            });
+        }
+
+        // Toggle Item Selection
+        function toggleSelection(btnElement, categoryId, item) {
+            if (selectedItems[categoryId].has(item)) {
+                selectedItems[categoryId].delete(item);
+                btnElement.classList.remove('selected', 'ring-2');
+                btnElement.style.opacity = '1';
+            } else {
+                selectedItems[categoryId].add(item);
+                btnElement.classList.add('selected', 'ring-2');
+            }
+        }
+
+        // Random Select
+        function randomSelect() {
+            clearSelection();
+            
+            data.forEach(category => {
+                // Randomly pick 1 to 2 items from each category
+                const numToPick = Math.floor(Math.random() * 2) + 1; 
+                const shuffled = [...category.items].sort(() => 0.5 - Math.random());
+                const picked = shuffled.slice(0, numToPick);
+                
+                picked.forEach(item => {
+                    // Find the button and simulate click
+                    const btn = document.querySelector(`.category-btn[data-category="${category.id}"][data-item="${item}"]`);
+                    if (btn) toggleSelection(btn, category.id, item);
+                });
+            });
+        }
+
+        // Clear Selection
+        function clearSelection() {
+            for (let key in selectedItems) {
+                selectedItems[key].clear();
+            }
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('selected', 'ring-2');
+            });
+        }
+
+        // Generate Card
+        function generateCard() {
+            // Check if anything is selected
+            let totalSelected = 0;
+            for (let key in selectedItems) {
+                totalSelected += selectedItems[key].size;
+            }
+            
+            if (totalSelected === 0) {
+                // simple visual feedback if empty
+                alert("請先從左側選擇關鍵字或作品！(或點選上方隨機選字)"); // Used native alert gracefully for empty state only, replacing with custom UI is better but minimal here. Wait, instructions said NO ALERTS.
+                // Let me implement a non-alert warning.
+                return;
+            }
+
+            // Create Card Content HTML
+            let cardHtml = '';
+            const currentSelectionData = {};
+
+            data.forEach(category => {
+                const selectedInCategory = Array.from(selectedItems[category.id]);
+                currentSelectionData[category.id] = selectedInCategory;
+
+                if (selectedInCategory.length > 0) {
+                    cardHtml += `
+                        <div class="mb-3">
+                            <h3 class="text-xs font-bold text-gray-500 mb-1 border-b pb-1 uppercase tracking-wider">${category.title}</h3>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                ${selectedInCategory.map(item => `
+                                    <span class="inline-block px-3 py-1 rounded-md text-sm font-bold ${category.colorClass.split(' ')[0]} ${category.colorClass.split(' ')[1]}">
+                                        ${item}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            // Show Modal
+            cardContentArea.innerHTML = cardHtml;
+            const now = new Date();
+            cardTimestamp.innerText = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} - ${now.toLocaleTimeString()}`;
+            
+            cardModal.classList.remove('hidden');
+            
+            // Re-trigger animation
+            const cardObj = document.getElementById('generated-card');
+            cardObj.classList.remove('card-reveal');
+            void cardObj.offsetWidth; // trigger reflow
+            cardObj.classList.add('card-reveal');
+
+            // Save to History
+            saveToHistory(currentSelectionData, cardHtml, now);
+        }
+
+        function closeModal() {
+            cardModal.classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        cardModal.addEventListener('click', (e) => {
+            if (e.target === cardModal) {
+                closeModal();
+            }
+        });
+
+        // Save and Render History
+        function saveToHistory(selectionData, cardHtml, date) {
+            history.unshift({
+                data: selectionData,
+                html: cardHtml,
+                time: date.toLocaleTimeString()
+            });
+
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (history.length > 0) {
+                emptyHistoryMsg.style.display = 'none';
+            }
+            
+            historyCount.innerText = history.length;
+            historyContainer.innerHTML = '';
+
+            history.forEach((record, index) => {
+                const item = document.createElement('div');
+                item.className = 'bg-white p-4 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow';
+                
+                // Construct mini preview
+                let previewTags = '';
+                data.forEach(cat => {
+                    if (record.data[cat.id] && record.data[cat.id].length > 0) {
+                        previewTags += `<span class="inline-block w-3 h-3 rounded-full ${cat.colorClass.split(' ')[0]} mr-1 mb-1" title="${cat.title}"></span>`;
+                    }
+                });
+
+                item.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-400">#${history.length - index} 抽卡紀錄</span>
+                        <span class="text-xs text-gray-400">${record.time}</span>
+                    </div>
+                    <div class="text-sm font-bold text-gray-700 mb-2 truncate">
+                        ${record.data['strong_concept']?.length ? record.data['strong_concept'].join(', ') : '綜合概念'}
+                    </div>
+                    <div>${previewTags}</div>
+                `;
+
+                // Click history item to view card again
+                item.onclick = () => {
+                    cardContentArea.innerHTML = record.html;
+                    cardTimestamp.innerText = `歷史紀錄 - ${record.time}`;
+                    cardModal.classList.remove('hidden');
+                    
+                    const cardObj = document.getElementById('generated-card');
+                    cardObj.classList.remove('card-reveal');
+                    void cardObj.offsetWidth; 
+                    cardObj.classList.add('card-reveal');
+                };
+
+                historyContainer.appendChild(item);
+            });
+        }
+
+        // Initialize App
+        window.onload = () => {
+            renderUI();
+            
+            // Override Native Alert per instructions using a custom toast if Generate is clicked empty
+            const originalGenerate = generateCard;
+            window.generateCard = function() {
+                let totalSelected = 0;
+                for (let key in selectedItems) {
+                    totalSelected += selectedItems[key].size;
+                }
+                if (totalSelected === 0) {
+                    // Custom non-intrusive warning
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-full shadow-lg z-50 transition-opacity duration-300';
+                    toast.innerText = '請至少選擇一個關鍵字或作品！ (或使用🎲隨機選字)';
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 2500);
+                    return;
+                }
+                originalGenerate();
+            };
+        };
+    </script>
+</body>
+</html>
